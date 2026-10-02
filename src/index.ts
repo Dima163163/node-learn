@@ -1,8 +1,5 @@
-const port: number = 3000;
+const port: number = 4000;
 
 console.log(port);
 
-export const sum = (a: number, b: number): number => a + b
-
-console.log(sum(2, 3));
 
