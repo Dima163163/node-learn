@@ -1,7 +1,7 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises"
 
-type User = {
+export type User = {
     id: number
     name: string
 }
