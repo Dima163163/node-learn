@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { loadUsers } from "./loadUsers.js";
 import { saveUsers } from "./saveUsers.js";
-import { validateUser } from "./validateUser.js";
+import { userSchema } from "./userSchema.js";
 
 const server = createServer(async(request, response) => {
     console.log(request.method); 
@@ -93,31 +93,36 @@ const server = createServer(async(request, response) => {
         request.on("end", async() => {
             try {
                 const parsedBody = JSON.parse(body)
-                const validateUserObj = validateUser(parsedBody)
-                if (validateUserObj !== null) {
-                    const newUserName = validateUserObj.name;
-                    try {
-                        const users = await loadUsers()
-    
-                        const ids = users.map(user => user.id)
-                        const newUserId = Math.max(0, ...ids) + 1
-                        const newUser = {id: newUserId, name: newUserName}
-    
-                        await saveUsers([...users, newUser])
-    
-                        response.statusCode = 201
-                        response.setHeader("Content-Type", "application/json")
-                        response.end(JSON.stringify(newUser))
-                    } catch (error) {
-                        console.error("POST /users failed:", error)
-                        response.statusCode = 500
-                        response.setHeader("Content-Type", "text/plain")
-                        response.end("Internal server error")
-                    }
-                } else {
+                const validateUserData = userSchema.safeParse(parsedBody)
+                if (!validateUserData.success) {
                     response.statusCode = 400
+                    response.setHeader("Content-Type", "application/json")
+                    response.end(JSON.stringify({
+                        error: "Validation failed",
+                        issues: validateUserData.error.issues
+                    }))
+                    return
+                }
+
+                const newUserName = validateUserData.data.name;
+
+                try {
+                    const users = await loadUsers()
+
+                    const ids = users.map(user => user.id)
+                    const newUserId = Math.max(0, ...ids) + 1
+                    const newUser = {id: newUserId, name: newUserName}
+
+                    await saveUsers([...users, newUser])
+
+                    response.statusCode = 201
+                    response.setHeader("Content-Type", "application/json")
+                    response.end(JSON.stringify(newUser))
+                } catch (error) {
+                    console.error("POST /users failed:", error)
+                    response.statusCode = 500
                     response.setHeader("Content-Type", "text/plain")
-                    response.end("Bad Request")
+                    response.end("Internal server error")
                 }
             } catch {
                 response.statusCode = 400
