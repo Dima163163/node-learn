@@ -2,12 +2,19 @@ import type { Request, Response } from "express"
 import { loadUsers } from "../loadUsers.js";
 import { userSchema } from "../userSchema.js";
 import { saveUsers } from "../saveUsers.js";
+import { pool } from '../db.js';
 
+type DbUser = {
+    id: number
+    name: string
+}
 
 export const getUsers = async (_request: Request, response: Response) => {
-    const users = await loadUsers()
+    const result = await pool.query<DbUser>(
+        'SELECT id, name FROM users ORDER BY id;'
+    )
 
-    response.json(users)
+    response.json(result.rows)
 }
 
 export const getUserById =  async(request: Request, response: Response) => {
@@ -21,10 +28,13 @@ export const getUserById =  async(request: Request, response: Response) => {
     }
 
     try {
-        const users = await loadUsers()
-        const currentUser = users.find(user => user.id === numberId)
-        if (currentUser) {
-            response.json(currentUser)
+        const result = await pool.query<DbUser>(
+            "SELECT id, name FROM users WHERE id = $1",
+            [numberId]
+        )
+        const user = result.rows[0]
+        if (user) {
+            response.json(user)
         } else {
             response.status(404).json({error: "Not found"})
         }
