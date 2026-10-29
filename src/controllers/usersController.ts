@@ -1,8 +1,7 @@
 import type { Request, Response } from "express"
-import { loadUsers } from "../loadUsers.js";
 import { userSchema } from "../userSchema.js";
-import { saveUsers } from "../saveUsers.js";
 import { pool } from '../db.js';
+import { findUserById, getAllUsers } from "../repositories/usersRepository.js";
 
 type DbUser = {
     id: number
@@ -10,11 +9,9 @@ type DbUser = {
 }
 
 export const getUsers = async (_request: Request, response: Response) => {
-    const result = await pool.query<DbUser>(
-        'SELECT id, name FROM users ORDER BY id;'
-    )
+    const users = await getAllUsers()
 
-    response.json(result.rows)
+    response.json(users)
 }
 
 export const getUserById =  async(request: Request, response: Response) => {
@@ -28,11 +25,7 @@ export const getUserById =  async(request: Request, response: Response) => {
     }
 
     try {
-        const result = await pool.query<DbUser>(
-            "SELECT id, name FROM users WHERE id = $1",
-            [numberId]
-        )
-        const user = result.rows[0]
+        const user = await findUserById(numberId)
         if (user) {
             response.json(user)
         } else {
