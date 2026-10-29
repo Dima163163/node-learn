@@ -56,14 +56,13 @@ export const createUser = async(request: Request, response: Response) => {
     }
 
     try {
-        const users = await loadUsers()
-        const ids = users.map(user => user.id)
-        const newUserId = Math.max(0, ...ids) + 1
-        const newUser = {
-            id: newUserId,
-            name: validateUserData.data.name
-        }
-        await saveUsers([...users, newUser])
+        const result = await pool.query<DbUser>(
+            "INSERT INTO users (name) VALUES ($1) RETURNING id, name;",
+            [validateUserData.data.name]
+        )
+
+        const newUser = result.rows[0]
+
         response.status(201).json(newUser)
     } catch (error) {
         console.error(error);
